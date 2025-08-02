@@ -1,23 +1,42 @@
 import streamlit as st
-from project1_backend.user_profile import get_user_profile
-from project1_backend.process_text import analyze_text
+from user_profile import get_user_profile
+from process_text import analyze_text
 
-st.set_page_config(page_title="Basic App")
-st.title("📘 Cognitive Load Estimator (Basic Demo)")
-#step1 text input
-user_text = st.text_area("Enter your text here:")
+# Configure page
+st.set_page_config(page_title="Project1 App", layout="wide")
+st.title("📘 Text Complexity & Emotion Analysis")
 
-#step 2 profile form
-with st.form("profile_form"):
-    level = st.selectbox("Reading Level", ["Beginner", "Intermediate", "Advanced"])
-    domain = st.text_input("Familiar Domain (e.g., Biology, History)")
-    submitted = st.form_submit_button("Analyze")
+# Step 1: User enters text
+st.subheader("Enter Text for Analysis")
+user_text = st.text_area("Paste your text here (e.g., a Canto from Dante's Inferno):", height=300)
 
-#pass data to backend and display output
-if submitted and user_text:
-    profile = get_user_profile(level, domain)
-    score, label = analyze_text(user_text, profile)
-    st.success(f"Cognitive Load: {label} ({score})")
-else:
-    st.info("Please enter text and submit profile.")
+# Step 2: User profile input
+st.sidebar.header("📋 User Profile")
+level = st.sidebar.selectbox("Reading Level", ["Beginner", "Intermediate", "Advanced"])
+domain = st.sidebar.text_input("Familiar Domain (e.g., History, Religion, Mythology)")
 
+# Step 3: Analysis Trigger
+if st.button("🔍 Analyze"):
+
+    if not user_text.strip():
+        st.warning("⚠️ Please enter text to analyze.")
+    else:
+        # Build user profile
+        profile = get_user_profile(level, domain)
+
+        # Analyze text using backend logic
+        with st.spinner("Analyzing text..."):
+            metrics_df, wordcloud_fig, emotion_fig = analyze_text(user_text, profile)
+
+        # Show results
+        st.subheader("📊 Cognitive Load Metrics")
+        st.dataframe(metrics_df)
+
+        st.download_button("📥 Download Metrics CSV", data=metrics_df.to_csv(index=False).encode("utf-8"),
+                           file_name="text_metrics.csv", mime="text/csv")
+
+        st.subheader("☁️ Word Cloud")
+        st.pyplot(wordcloud_fig)
+
+        st.subheader("📈 Emotion Frequency")
+        st.pyplot(emotion_fig)
